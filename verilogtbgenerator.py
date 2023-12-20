@@ -110,7 +110,7 @@ def extract_conditions(verilog_code):
 
     return conditions
 
-verilog_file = "D:/LapTop hp Backup 2-12-2023/New Volume D/yusuf/subjects/Junior semester 5/EDA/Project/first/EDA Verilog Code/ATM.v"
+verilog_file = "binaryCounter.v"
 file = open(verilog_file, 'r')
 rtl_code = file.read()
 rtl_code = remove_comments(rtl_code) # Remove comments from the Verilog code
