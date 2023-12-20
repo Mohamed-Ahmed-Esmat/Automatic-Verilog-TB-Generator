@@ -110,6 +110,35 @@ def extract_conditions(verilog_code):
 
     return conditions
 
+def clean_expression(expression):
+    # Encode to bytes, ignore non-ascii characters, then decode back to string
+    cleaned_expression = expression.encode('ascii', 'ignore').decode()
+
+    # Remove any non-alphanumeric and non-operator characters
+    cleaned_expression = re.sub(r'[^\w\s\+\-\*/&|~^<>=?:\.,\[\]]', '', cleaned_expression)
+
+    return cleaned_expression.strip()
+
+def extract_continuous_assignments(verilog_code):
+    # Regular expression to match continuous assignments
+    continuous_assignment_pattern = re.compile(r'\bassign\b\s+(\w+)\s*=\s*([^;]*);')
+
+    # Find all matches in the Verilog code
+    matches = continuous_assignment_pattern.findall(verilog_code)
+
+    # Extract variable and operands from each match
+    continuous_assignments = []
+    for variable, expression in matches:
+        # Clean the expression and extract operands
+        cleaned_expression = clean_expression(expression)
+        operands = re.findall(r'\b(\w+)\b', cleaned_expression)
+        operands = [operand for operand in operands if not operand[0].isdigit()]  # Ignore operands that start with a digit
+        continuous_assignments.append({'variable': variable, 'operands': list(set(operands))})
+
+    return continuous_assignments
+    
+
+
 verilog_file = "binaryCounter.v"
 file = open(verilog_file, 'r')
 rtl_code = file.read()
@@ -123,10 +152,11 @@ inputs_with_bits = assign_bits_to_signals(input_names) # Assign bit widths to th
 output_with_bits = assign_bits_to_signals(output_names) # Assign bit widths to the output signals
 reg_with_bits = assign_bits_to_signals(reg_names) # Assign bit widths to the input signals
 wire_with_bits = assign_bits_to_signals(wire_names) # Assign bit widths to the output signals
+extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
 print(inputs_with_bits)
 print(output_with_bits)
 print(reg_with_bits)
 print(wire_with_bits)
-
 parsed_conditions = extract_conditions(rtl_code)
 print("Parsed Conditions:", parsed_conditions)
+print("Continuous Assignments:", extracted_continuous_assignments)
