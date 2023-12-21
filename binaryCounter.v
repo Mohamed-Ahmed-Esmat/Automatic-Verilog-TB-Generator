@@ -13,6 +13,9 @@ module BinaryCounter(
     output wire result     // Output based on continuous assignment
 );
 
+    reg [3:0] r;
+    wire [3:0] w;
+
     // Define a 4-bit register to hold the count
     always @(posedge clk or posedge rst)
     begin
@@ -20,6 +23,17 @@ module BinaryCounter(
             count <= 4'b0000;
         else      // Increment on each rising edge of the clock
             count <= count + 1;
+
+        case (r)
+        w:
+
+        4'b0000:
+
+        4'b0101:
+
+        4'b1111:
+
+        endcase
     end
 
     // Continuous assignment for 'result' based on inputs x and y
@@ -27,5 +41,3 @@ module BinaryCounter(
     assign result = (a & c) ? (f + 4'b0001) : (g - 4'b0010);
 
 endmodule
-
- 

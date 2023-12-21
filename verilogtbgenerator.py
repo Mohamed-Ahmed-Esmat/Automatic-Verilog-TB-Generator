@@ -17,14 +17,14 @@ def extract_output_names(verilog_code):
 
 def extract_reg_names(verilog_code):
     # Match reg declarations with or without bit width
-    pattern = re.compile(r'\breg\s*(?:\[[0-9]*:[0-9]*\])?\s*(\w+)\s*(?:[,;]|$)')
+    pattern = re.compile(r'(?<!output\s)\breg\s*(?:\[[0-9]*:[0-9]*\])?\s*(\w+)\s*(?:[,;]|$)')
     matches = pattern.findall(verilog_code)
 
     return matches
 
 def extract_wire_names(verilog_code):
     # Match wire declarations with or without bit width
-    pattern = re.compile(r'\bwire\s*(?:\[[0-9]*:[0-9]*\])?\s*(\w+)\s*(?:[,;]|$)')
+    pattern = re.compile(r'(?<!input\s)\bwire\s*(?:\[[0-9]*:[0-9]*\])?\s*(\w+)\s*(?:[,;]|$)')
     matches = pattern.findall(verilog_code)
 
     return matches
@@ -72,43 +72,24 @@ def remove_comments(verilog_code):
         verilog_code = verilog_code[:start_index] + verilog_code[end_index:]
 
     return verilog_code
-    
-def extract_conditions_from_if(verilog_code):
-    conditions = {}
 
-    # Match if statements
-    pattern = re.compile(r'\bif\s*\(([^)]+)\)')
-    matches = pattern.findall(verilog_code)
+def extract_case_conditions(verilog_code):
+    case_conditions = {}
 
-    for condition in matches:
-        conditions['if'] = conditions.get('if', []) + [condition.strip()]
+    # Find all case statements along with their bodies
+    case_pattern = re.compile(r'\bcase\s*\((\w+)\)\s*(.*?)\bendcase\b', re.DOTALL)
+    matches = case_pattern.finditer(verilog_code)
 
-    return conditions
+    for match in matches:
+        condition_variable = match.group(1)
+        case_body = match.group(2)
+        
+        # Extract individual conditions from the case body
+        condition_values = re.findall(r'([^\s:]+)\s*:', case_body)
 
-def extract_conditions_from_case(verilog_code):
-    conditions = {}
+        case_conditions[condition_variable] = condition_values
 
-    # Match case statements
-    pattern = re.compile(r'\bcase\s*\(([^)]+)\)')
-    matches = pattern.findall(verilog_code)
-
-    for condition in matches:
-        conditions['case'] = conditions.get('case', []) + [condition.strip()]
-
-    return conditions
-
-def extract_conditions(verilog_code):
-    conditions = {}
-    
-    # Extract conditions from if statements
-    if_conditions = extract_conditions_from_if(verilog_code)
-    conditions.update(if_conditions)
-
-    # Extract conditions from case statements
-    case_conditions = extract_conditions_from_case(verilog_code)
-    conditions.update(case_conditions)
-
-    return conditions
+    return case_conditions
 
 def clean_expression(expression):
     # Encode to bytes, ignore non-ascii characters, then decode back to string
@@ -152,11 +133,11 @@ inputs_with_bits = assign_bits_to_signals(input_names) # Assign bit widths to th
 output_with_bits = assign_bits_to_signals(output_names) # Assign bit widths to the output signals
 reg_with_bits = assign_bits_to_signals(reg_names) # Assign bit widths to the input signals
 wire_with_bits = assign_bits_to_signals(wire_names) # Assign bit widths to the output signals
+case_conditions = extract_case_conditions(rtl_code)
 extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
 print(inputs_with_bits)
 print(output_with_bits)
 print(reg_with_bits)
 print(wire_with_bits)
-parsed_conditions = extract_conditions(rtl_code)
-print("Parsed Conditions:", parsed_conditions)
+print(case_conditions)
 print("Continuous Assignments:", extracted_continuous_assignments)
