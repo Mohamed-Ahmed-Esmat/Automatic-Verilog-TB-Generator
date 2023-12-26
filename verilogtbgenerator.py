@@ -91,6 +91,24 @@ def extract_case_conditions(verilog_code):
 
     return case_conditions
 
+def parse_if_statements(verilog_code):
+    # Adjusted pattern to capture only the conditions in 'if' and 'else if'
+    pattern = re.compile(r'\bif\s*\((.*?)\)\s*|else\s*if\s*\((.*?)\)\s*', re.DOTALL)
+    matches = pattern.findall(verilog_code)
+
+    parsed_conditions = []
+    for match in matches:
+        # Check if it's an 'if' or 'else if' condition and append accordingly
+        if_condition, elseif_condition = match
+        if if_condition:
+            # Store the 'if' condition
+            parsed_conditions.append(if_condition)
+        elif elseif_condition:
+            # Store the 'else if' condition (if exists)
+            parsed_conditions.append(elseif_condition)
+
+    return parsed_conditions
+
 def clean_expression(expression):
     # Encode to bytes, ignore non-ascii characters, then decode back to string
     cleaned_expression = expression.encode('ascii', 'ignore').decode()
@@ -183,9 +201,13 @@ reg_with_bits = assign_bits_to_signals(reg_names) # Assign bit widths to the inp
 wire_with_bits = assign_bits_to_signals(wire_names) # Assign bit widths to the output signals
 case_conditions = extract_case_conditions(rtl_code)
 extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
-print(inputs_with_bits)
-print(output_with_bits)
-print(reg_with_bits)
-print(wire_with_bits)
-print(case_conditions)
-print("Continuous Assignments:", extracted_continuous_assignments)
+parsed_ifs = parse_if_statements(rtl_code)
+extracted_always_blocks = extract_always_blocks(rtl_code)
+#print(inputs_with_bits)
+#print(output_with_bits)
+#print(reg_with_bits)
+#print(wire_with_bits)
+#print(case_conditions)
+print(parsed_ifs)
+#print(extracted_always_blocks)
+#print("Continuous Assignments:", extracted_continuous_assignments)
