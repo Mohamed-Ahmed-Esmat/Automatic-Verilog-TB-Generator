@@ -118,6 +118,54 @@ def extract_continuous_assignments(verilog_code):
 
     return continuous_assignments
     
+def extract_always_blocks(verilog_code):
+    always_blocks = []
+
+    # Find all always blocks along with their bodies
+    always_pattern = re.compile(r'\balways\s*@\s*\((.*?)\)\s*(.*?)\bend\b', re.DOTALL)
+    matches = always_pattern.finditer(verilog_code)
+
+    for match in matches:
+        sensitivity_list = match.group(1)
+        always_body = match.group(2)
+
+        # Check if the always block is combinational or clock based
+        # A combinational always block has a sensitivity list with only signals and operators
+        # A clock based always block has a sensitivity list with at least one posedge or negedge keyword
+        if 'posedge' in sensitivity_list or 'negedge' in sensitivity_list:
+            block_type = 'clock based'
+        else:
+            block_type = 'combinational'
+
+        # Extract the variables and expressions from the always body
+        # Assume the always body is a series of if-else statements
+        variables = []
+        expressions = []
+        if_pattern = re.compile(r'\bif\s*\((.*?)\)\s*(.*?)\belse\b', re.DOTALL)
+        if_matches = if_pattern.findall(always_body)
+        for condition, statement in if_matches:
+            # Clean the condition and statement and extract operands
+            cleaned_condition = clean_expression(condition)
+            cleaned_statement = clean_expression(statement)
+            condition_operands = re.findall(r'\b(\w+)\b', cleaned_condition)
+            statement_operands = re.findall(r'\b(\w+)\b', cleaned_statement)
+            condition_operands = [operand for operand in condition_operands if not operand[0].isdigit()]  # Ignore operands that start with a digit
+            statement_operands = [operand for operand in statement_operands if not operand[0].isdigit()]  # Ignore operands that start with a digit
+            variables.extend(statement_operands)
+            expressions.append({'condition': condition_operands, 'statement': statement_operands})
+
+        # Store the always block information in a dictionary
+        always_block = {'type': block_type, 'sensitivity_list': sensitivity_list, 'variables': list(set(variables)), 'expressions': expressions}
+        
+        # Add begin and end keywords to the always block body
+        always_body = 'begin\n' + always_body + '\nend'
+        
+        # Add the modified always block to the list
+        always_blocks.append({'always_body': always_body, 'always_block': always_block})
+
+    return always_blocks
+
+
 
 
 verilog_file = "binaryCounter.v"
