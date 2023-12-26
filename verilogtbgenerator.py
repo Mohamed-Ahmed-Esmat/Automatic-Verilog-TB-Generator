@@ -213,6 +213,7 @@ case_conditions = extract_case_conditions(rtl_code)
 extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
 parsed_ifs = parse_if_statements(rtl_code)
 extracted_always_blocks = extract_always_blocks(rtl_code)
+
 print(module_name)
 print(inputs_with_bits)
 print(output_with_bits)
@@ -222,3 +223,50 @@ print(case_conditions)
 print(parsed_ifs)
 print(extracted_always_blocks)
 print("Continuous Assignments:", extracted_continuous_assignments)
+
+def write_testbench(module_name, inputs_with_bits, outputs_with_bits):
+    testbench = f"// Testbench for {module_name}\n"
+    testbench += f"`timescale 1ns / 1ps\n\n"
+    testbench += f"module {module_name}_tb;\n\n"
+
+    # Generate a clock
+    testbench += "  reg clk;\n"
+    testbench += "  initial clk = 0;\n"
+    testbench += "  always #5 clk = ~clk;\n\n"
+
+    # Declare regs for inputs and wires for outputs
+    for name, bits in inputs_with_bits.items():
+        if bits == 1:
+            testbench += f"  reg {name};\n"
+        else:
+            testbench += f"  reg [{bits-1}:0] {name};\n"
+    testbench += "\n"
+
+    for name, bits in outputs_with_bits.items():
+        if bits == 1:
+            testbench += f"  wire {name};\n"
+        else:
+            testbench += f"  wire [{bits-1}:0] {name};\n"
+    testbench += "\n"
+
+    # Instantiate the DUT
+    testbench += f"  {module_name} DUT (\n"
+    all_ports = [f".{name}({name})" for name in list(inputs_with_bits.keys()) + list(outputs_with_bits.keys())]
+    testbench += ",\n".join(f"    {port}" for port in all_ports)
+    testbench += "\n  );\n\n"
+
+    # Testbench logic (to be filled in by the user)
+    testbench += "  // Testbench logic\n"
+    testbench += "  // Example: initial begin\n"
+    testbench += "  //   // Initialize inputs\n"
+    testbench += "  //   // Apply test vectors\n"
+    testbench += "  //   // Monitor outputs\n"
+    testbench += "  // end\n\n"
+
+    testbench += "endmodule"
+
+    return testbench
+
+# Example usage
+testbench_code = write_testbench(module_name, inputs_with_bits, output_with_bits)
+print(testbench_code)
