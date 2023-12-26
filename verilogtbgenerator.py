@@ -1,5 +1,14 @@
 import re
 
+def extract_module_name(verilog_code):
+    pattern = re.compile(r'\bmodule\b\s*(\w+)')
+    match = pattern.search(verilog_code)
+    
+    if match:
+        return match.group(1)  # Return the module name
+    else:
+        return None  # Return None if no module name is found
+
 def extract_input_names(verilog_code):
     
     input_pattern = re.compile(r'(?:\binput\b)\s*(?:reg|wire)?\s*(?:\[[0-9]*:[0-9]*\])?\s*(\w+)\s*(?:[,; ]|$)')
@@ -191,6 +200,7 @@ file = open(verilog_file, 'r')
 rtl_code = file.read()
 rtl_code = remove_comments(rtl_code) # Remove comments from the Verilog code
 rtl_code = " ".join(rtl_code.split()) # Remove extra spaces from the Verilog code
+module_name = extract_module_name(rtl_code) # Extract the module name from the Verilog code
 input_names = extract_input_names(rtl_code) # Extract the input names from the Verilog code
 output_names = extract_output_names(rtl_code) # Extract the output names from the Verilog code
 reg_names = extract_reg_names(rtl_code) # Extract the reg names from the Verilog code
@@ -203,6 +213,7 @@ case_conditions = extract_case_conditions(rtl_code)
 extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
 parsed_ifs = parse_if_statements(rtl_code)
 extracted_always_blocks = extract_always_blocks(rtl_code)
+print(module_name)
 print(inputs_with_bits)
 print(output_with_bits)
 print(reg_with_bits)
