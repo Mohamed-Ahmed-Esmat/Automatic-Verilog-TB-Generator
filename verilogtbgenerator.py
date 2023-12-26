@@ -268,5 +268,7 @@ def write_testbench(module_name, inputs_with_bits, outputs_with_bits):
     return testbench
 
 # Example usage
+tb_file = "binarytb.v"
+tbfile = open(tb_file, "w")
 testbench_code = write_testbench(module_name, inputs_with_bits, output_with_bits)
-print(testbench_code)
+tbfile.write(testbench_code)
