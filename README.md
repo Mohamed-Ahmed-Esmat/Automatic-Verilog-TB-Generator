@@ -5,3 +5,4 @@ extract_clock(), extract_reset()
 monitoring
 instead #10 make it @(negedge clk)
 reset = 1; or reset = 0;
+directed cases
