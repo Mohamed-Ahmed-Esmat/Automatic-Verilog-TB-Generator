@@ -36,11 +36,41 @@ module BinaryCounter_tb;
     .result(result)
   );
 
-  // Testbench logic
-  // Example: initial begin
-  //   // Initialize inputs
-  //   // Apply test vectors
-  //   // Monitor outputs
-  // end
+  initial begin
+    // Initialize inputs
+    clk = 0;
+    rst = 0;
+    x = 0;
+    y = 0;
+    a = 0;
+    c = 0;
+    d = 0;
+    g = 0;
+    f = 0;
+    b = 0;
+    #10;
 
+    // Directed Test Cases
+    // TODO: Fill in directed test cases
+
+    // Random Test Cases
+    integer i;
+    for (i = 0; i < 5000; i = i + 1) begin
+      #10;
+      clk = $random();
+      rst = $random();
+      x = $random();
+      y = $random();
+      a = $random();
+      c = $random();
+      d = $random();
+      g = $random();
+      f = $random();
+      b = $random();
+    end
+
+    // Monitor outputs and check against expected values
+    // TODO: Implement monitoring and checking logic
+
+  end
 endmodule

@@ -101,20 +101,42 @@ def extract_case_conditions(verilog_code):
     return case_conditions
 
 def parse_if_statements(verilog_code):
-    # Adjusted pattern to capture only the conditions in 'if' and 'else if'
     pattern = re.compile(r'\bif\s*\((.*?)\)\s*|else\s*if\s*\((.*?)\)\s*', re.DOTALL)
     matches = pattern.findall(verilog_code)
 
     parsed_conditions = []
     for match in matches:
-        # Check if it's an 'if' or 'else if' condition and append accordingly
         if_condition, elseif_condition = match
-        if if_condition:
-            # Store the 'if' condition
-            parsed_conditions.append(if_condition)
-        elif elseif_condition:
-            # Store the 'else if' condition (if exists)
-            parsed_conditions.append(elseif_condition)
+        condition = if_condition if if_condition else elseif_condition
+
+        # Check if the condition is a single variable
+        if re.fullmatch(r'\w+', condition):
+            # If so, assume the operator is '==' and the value is '1'
+            parsed_conditions.append({
+                'variable': condition.strip(),
+                'operator': '==',
+                'value': '1'
+            })
+        elif re.fullmatch(r'~\w+', condition):
+            # Handle unary operator like '~', interpreted as '!=' to '1'
+            parsed_conditions.append({
+                'variable': condition[1:].strip(),  # Strip off the unary operator
+                'operator': '!=',
+                'value': '1'
+            })
+        else:
+            # Split the condition into variable, operator, and value
+            condition_parts = re.split(r'(\W+)', condition)
+            if len(condition_parts) >= 3:
+                variable = condition_parts[0].strip()
+                operator = condition_parts[1].strip()
+                value = ''.join(condition_parts[2:]).strip()
+
+                parsed_conditions.append({
+                    'variable': variable,
+                    'operator': operator,
+                    'value': value
+                })
 
     return parsed_conditions
 
@@ -193,38 +215,7 @@ def extract_always_blocks(verilog_code):
     return always_blocks
 
 
-
-
-verilog_file = "binaryCounter.v"
-file = open(verilog_file, 'r')
-rtl_code = file.read()
-rtl_code = remove_comments(rtl_code) # Remove comments from the Verilog code
-rtl_code = " ".join(rtl_code.split()) # Remove extra spaces from the Verilog code
-module_name = extract_module_name(rtl_code) # Extract the module name from the Verilog code
-input_names = extract_input_names(rtl_code) # Extract the input names from the Verilog code
-output_names = extract_output_names(rtl_code) # Extract the output names from the Verilog code
-reg_names = extract_reg_names(rtl_code) # Extract the reg names from the Verilog code
-wire_names = extract_wire_names(rtl_code) # Extract the wire names from the Verilog code
-inputs_with_bits = assign_bits_to_signals(input_names) # Assign bit widths to the input signals
-output_with_bits = assign_bits_to_signals(output_names) # Assign bit widths to the output signals
-reg_with_bits = assign_bits_to_signals(reg_names) # Assign bit widths to the input signals
-wire_with_bits = assign_bits_to_signals(wire_names) # Assign bit widths to the output signals
-case_conditions = extract_case_conditions(rtl_code)
-extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
-parsed_ifs = parse_if_statements(rtl_code)
-extracted_always_blocks = extract_always_blocks(rtl_code)
-
-print(module_name)
-print(inputs_with_bits)
-print(output_with_bits)
-print(reg_with_bits)
-print(wire_with_bits)
-print(case_conditions)
-print(parsed_ifs)
-print(extracted_always_blocks)
-print("Continuous Assignments:", extracted_continuous_assignments)
-
-def write_testbench(module_name, inputs_with_bits, outputs_with_bits):
+def write_testbench(module_name, inputs_with_bits, outputs_with_bits, case_conditions, parsed_ifs):
     testbench = f"// Testbench for {module_name}\n"
     testbench += f"`timescale 1ns / 1ps\n\n"
     testbench += f"module {module_name}_tb;\n\n"
@@ -255,20 +246,56 @@ def write_testbench(module_name, inputs_with_bits, outputs_with_bits):
     testbench += ",\n".join(f"    {port}" for port in all_ports)
     testbench += "\n  );\n\n"
 
-    # Testbench logic (to be filled in by the user)
-    testbench += "  // Testbench logic\n"
-    testbench += "  // Example: initial begin\n"
-    testbench += "  //   // Initialize inputs\n"
-    testbench += "  //   // Apply test vectors\n"
-    testbench += "  //   // Monitor outputs\n"
-    testbench += "  // end\n\n"
+    # Add test logic
+    testbench += "  initial begin\n"
+    testbench += "    // Initialize inputs\n"
+    for name in inputs_with_bits.keys():
+        testbench += f"    {name} = 0;\n"
+    testbench += "    #10;\n\n"
 
+    # Directed Test Cases
+    testbench += "    // Directed Test Cases\n"
+    testbench += "    // TODO: Fill in directed test cases\n\n"
+
+    # Random Test Cases
+    testbench += "    // Random Test Cases\n"
+    testbench += "    integer i;\n"
+    testbench += "    for (i = 0; i < 5000; i = i + 1) begin\n"
+    testbench += "      #10;\n"
+    for name, bits in inputs_with_bits.items():
+        testbench += f"      {name} = $random();\n"
+    testbench += "    end\n\n"
+
+    testbench += "    // Monitor outputs and check against expected values\n"
+    testbench += "    // TODO: Implement monitoring and checking logic\n\n"
+
+    testbench += "  end\n"
     testbench += "endmodule"
 
     return testbench
 
-# Example usage
+verilog_file = "binaryCounter.v"
+file = open(verilog_file, 'r')
+rtl_code = file.read()
+rtl_code = remove_comments(rtl_code) # Remove comments from the Verilog code
+rtl_code = " ".join(rtl_code.split()) # Remove extra spaces from the Verilog code
+module_name = extract_module_name(rtl_code) # Extract the module name from the Verilog code
+input_names = extract_input_names(rtl_code) # Extract the input names from the Verilog code
+output_names = extract_output_names(rtl_code) # Extract the output names from the Verilog code
+reg_names = extract_reg_names(rtl_code) # Extract the reg names from the Verilog code
+wire_names = extract_wire_names(rtl_code) # Extract the wire names from the Verilog code
+inputs_with_bits = assign_bits_to_signals(input_names) # Assign bit widths to the input signals
+output_with_bits = assign_bits_to_signals(output_names) # Assign bit widths to the output signals
+reg_with_bits = assign_bits_to_signals(reg_names) # Assign bit widths to the input signals
+wire_with_bits = assign_bits_to_signals(wire_names) # Assign bit widths to the output signals
+case_conditions = extract_case_conditions(rtl_code)
+extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
+parsed_ifs = parse_if_statements(rtl_code)
+extracted_always_blocks = extract_always_blocks(rtl_code)
 tb_file = "binarytb.v"
 tbfile = open(tb_file, "w")
-testbench_code = write_testbench(module_name, inputs_with_bits, output_with_bits)
+testbench_code = write_testbench(module_name, inputs_with_bits, output_with_bits, case_conditions, parsed_ifs)
 tbfile.write(testbench_code)
+
+print(case_conditions)
+print(parsed_ifs)
