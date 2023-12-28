@@ -214,6 +214,28 @@ def extract_always_blocks(verilog_code):
 
     return always_blocks
 
+def extract_non_blocking_assignments(verilog_code):
+    # Regular expression to match non-blocking assignments
+    non_blocking_assignment_pattern = re.compile(r'\b(\w+)\s*<=\s*([^;]*);')
+
+    # Find all matches in the Verilog code
+    matches = non_blocking_assignment_pattern.findall(verilog_code)
+
+    # Extract variable and operands from each match
+    non_blocking_assignments = []
+    for variable, expression in matches:
+        # Clean the expression and extract operands
+        cleaned_expression = clean_expression(expression)
+        operands = re.findall(r'\b([\w\d]+)\b', cleaned_expression)  # Include numbers as operands
+        operands = [operand for operand in operands if not operand[0].isdigit()]  # Ignore operands that start with a digit
+        non_blocking_assignments.append({'variable': variable, 'operands': list(set(operands))})
+
+    return non_blocking_assignments
+
+
+
+
+extracted_clock = 'clock'
 
 def write_testbench(module_name, inputs_with_bits, outputs_with_bits, case_conditions, parsed_ifs):
     testbench = f"// Testbench for {module_name}\n"
@@ -274,33 +296,6 @@ def write_testbench(module_name, inputs_with_bits, outputs_with_bits, case_condi
 
     return testbench
 
-
-def extract_non_blocking_assignments(verilog_code):
-    # Regular expression to match non-blocking assignments
-    non_blocking_assignment_pattern = re.compile(r'\b(\w+)\s*<=\s*([^;]*);')
-
-    # Find all matches in the Verilog code
-    matches = non_blocking_assignment_pattern.findall(verilog_code)
-
-    # Extract variable and operands from each match
-    non_blocking_assignments = []
-    for variable, expression in matches:
-        # Clean the expression and extract operands
-        cleaned_expression = clean_expression(expression)
-        operands = re.findall(r'\b([\w\d]+)\b', cleaned_expression)  # Include numbers as operands
-        operands = [operand for operand in operands if not operand[0].isdigit()]  # Ignore operands that start with a digit
-        non_blocking_assignments.append({'variable': variable, 'operands': list(set(operands))})
-
-    return non_blocking_assignments
-
-# Example usage
-extracted_non_blocking_assignments = extract_non_blocking_assignments(rtl_code)
-print("Non-Blocking Assignments:", extracted_non_blocking_assignments)
-
-
-
-
-
 verilog_file = "binaryCounter.v"
 file = open(verilog_file, 'r')
 rtl_code = file.read()
@@ -318,11 +313,11 @@ wire_with_bits = assign_bits_to_signals(wire_names) # Assign bit widths to the o
 case_conditions = extract_case_conditions(rtl_code)
 extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
 parsed_ifs = parse_if_statements(rtl_code)
+extracted_non_blocking_assignments = extract_non_blocking_assignments(rtl_code)
+
 extracted_always_blocks = extract_always_blocks(rtl_code)
 tb_file = "binarytb.v"
 tbfile = open(tb_file, "w")
 testbench_code = write_testbench(module_name, inputs_with_bits, output_with_bits, case_conditions, parsed_ifs)
 tbfile.write(testbench_code)
 
-print(case_conditions)
-print(parsed_ifs)
