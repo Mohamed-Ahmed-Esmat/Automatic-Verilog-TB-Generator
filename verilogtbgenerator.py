@@ -221,29 +221,23 @@ def extract_non_blocking_assignments(verilog_code):
     # Find all matches in the Verilog code
     matches = non_blocking_assignment_pattern.findall(verilog_code)
 
-    # Extract variable and operands from each match
+    # Extract variable and expression from each match
     non_blocking_assignments = []
     for variable, expression in matches:
-        # Clean the expression and extract operands
-        cleaned_expression = clean_expression(expression)
-        operands = re.findall(r'\b([\w\d]+)\b', cleaned_expression)  # Include numbers as operands
-        operands = [operand for operand in operands if not operand[0].isdigit()]  # Ignore operands that start with a digit
-        non_blocking_assignments.append({'variable': variable, 'operands': list(set(operands))})
+        # Add the entire expression as an operand
+        non_blocking_assignments.append({'variable': variable, 'expression': expression.strip()})
 
     return non_blocking_assignments
-
-extracted_clock = 'clock'
-extracted_reset = 'reset'
 
 def write_testbench(module_name, inputs_with_bits, outputs_with_bits, case_conditions, parsed_ifs, extracted_clock, extracted_reset):
     testbench = f"// Testbench for {module_name}\n"
     testbench += f"`timescale 1ns / 1ps\n\n"
     testbench += f"module {module_name}_tb;\n\n"
 
-    # Generate a clock
-    testbench += "  reg clk;\n"
-    testbench += "  initial clk = 0;\n"
-    testbench += "  always #5 clk = ~clk;\n\n"
+    # Generate a clock with the name specified in extracted_clock
+    testbench += f"  reg {extracted_clock};\n"
+    testbench += f"  {extracted_clock} = 0;\n"
+    testbench += f"  always #5 {extracted_clock} = ~{extracted_clock};\n\n"
 
     # Declare regs for inputs and wires for outputs
     for name, bits in inputs_with_bits.items():
@@ -264,7 +258,7 @@ def write_testbench(module_name, inputs_with_bits, outputs_with_bits, case_condi
 
     # Instantiate the DUT
     testbench += f"  {module_name} DUT (\n"
-    all_ports = [f".{name}({name if name != extracted_clock else 'clk'})" for name in list(inputs_with_bits.keys()) + list(outputs_with_bits.keys())]
+    all_ports = [f".{name}({name})" for name in list(inputs_with_bits.keys()) + list(outputs_with_bits.keys())]
     testbench += ",\n".join(f"    {port}" for port in all_ports)
     testbench += "\n  );\n\n"
 
@@ -272,12 +266,9 @@ def write_testbench(module_name, inputs_with_bits, outputs_with_bits, case_condi
     testbench += "  initial begin\n"
     testbench += "    // Initialize inputs\n"
     for name in inputs_with_bits.keys():
-        testbench += f"    {name} = 0;\n"
+        if name not in [extracted_clock]:
+            testbench += f"    {name} = 0;\n"
     testbench += "    #10;\n\n"
-
-    # Directed Test Cases
-    testbench += "    // Directed Test Cases\n"
-    testbench += "    // TODO: Fill in directed test cases\n\n"
 
     # Random Test Cases
     testbench += "    // Random Test Cases\n"
@@ -285,16 +276,16 @@ def write_testbench(module_name, inputs_with_bits, outputs_with_bits, case_condi
     testbench += "    for (i = 0; i < 5000; i = i + 1) begin\n"
     testbench += "      #10;\n"
     for name, bits in inputs_with_bits.items():
-        testbench += f"      {name} = $random();\n"
+        if name not in [extracted_clock, extracted_reset]:
+            testbench += f"      {name} = $random();\n"
     testbench += "    end\n\n"
-
-    testbench += "    // Monitor outputs and check against expected values\n"
-    testbench += "    // TODO: Implement monitoring and checking logic\n\n"
 
     testbench += "  end\n"
     testbench += "endmodule"
 
     return testbench
+
+
 
 verilog_file = "binaryCounter.v"
 file = open(verilog_file, 'r')
@@ -318,6 +309,7 @@ extracted_non_blocking_assignments = extract_non_blocking_assignments(rtl_code)
 extracted_always_blocks = extract_always_blocks(rtl_code)
 tb_file = "binarytb.v"
 tbfile = open(tb_file, "w")
+extracted_clock = 'clock'
+extracted_reset = 'reset'
 testbench_code = write_testbench(module_name, inputs_with_bits, output_with_bits, case_conditions, parsed_ifs,extracted_clock, extracted_reset)
 tbfile.write(testbench_code)
-

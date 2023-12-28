@@ -3,11 +3,11 @@
 
 module BinaryCounter_tb;
 
-  reg clk;
-  iniatil clk = 0;
-  always #5 clk = ~clk;
+  reg clock;
+  clock = 0;
+  always #5 clock = ~clock;
 
-  reg rst;
+  reg reset;
   reg x;
   reg y;
   reg a;
@@ -21,8 +21,8 @@ module BinaryCounter_tb;
   wire result;
 
   BinaryCounter DUT (
-    .clock(clk),
-    .rst(rst),
+    .clock(clock),
+    .reset(reset),
     .x(x),
     .y(y),
     .a(a),
@@ -37,8 +37,7 @@ module BinaryCounter_tb;
 
   initial begin
     // Initialize inputs
-    clock = 0;
-    rst = 0;
+    reset = 0;
     x = 0;
     y = 0;
     a = 0;
@@ -49,15 +48,10 @@ module BinaryCounter_tb;
     b = 0;
     #10;
 
-    // Directed Test Cases
-    // TODO: Fill in directed test cases
-
     // Random Test Cases
     integer i;
     for (i = 0; i < 5000; i = i + 1) begin
       #10;
-      clock = $random();
-      rst = $random();
       x = $random();
       y = $random();
       a = $random();
@@ -67,9 +61,6 @@ module BinaryCounter_tb;
       f = $random();
       b = $random();
     end
-
-    // Monitor outputs and check against expected values
-    // TODO: Implement monitoring and checking logic
 
   end
 endmodule
