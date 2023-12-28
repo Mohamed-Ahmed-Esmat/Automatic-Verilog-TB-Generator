@@ -4,11 +4,10 @@
 module BinaryCounter_tb;
 
   reg clk;
-  initial clk = 0;
+  iniatil clk = 0;
   always #5 clk = ~clk;
 
-  reg clk;
-  reg [2:0] rst;
+  reg rst;
   reg x;
   reg y;
   reg a;
@@ -22,7 +21,7 @@ module BinaryCounter_tb;
   wire result;
 
   BinaryCounter DUT (
-    .clk(clk),
+    .clock(clk),
     .rst(rst),
     .x(x),
     .y(y),
@@ -38,7 +37,7 @@ module BinaryCounter_tb;
 
   initial begin
     // Initialize inputs
-    clk = 0;
+    clock = 0;
     rst = 0;
     x = 0;
     y = 0;
@@ -57,7 +56,7 @@ module BinaryCounter_tb;
     integer i;
     for (i = 0; i < 5000; i = i + 1) begin
       #10;
-      clk = $random();
+      clock = $random();
       rst = $random();
       x = $random();
       y = $random();

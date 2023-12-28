@@ -1,6 +1,6 @@
 module BinaryCounter(
-    input clk,         // Clock input
-    input [2:0] rst,    // Reset input
+    input clock,         // Clock input
+    input reset,    // Reset input
     input x,
     input y,
     input a, 
@@ -17,9 +17,9 @@ module BinaryCounter(
     wire [3:0] w;
 
     // Define a 4-bit register to hold the count
-    always @(posedge clk or posedge rst)
+    always @(posedge clock or posedge reset)
     begin
-        if (rst)  // Reset condition
+        if (reset)  // Reset condition
             count <= 4'b0000;
         else      // Increment on each rising edge of the clock
             count <= count + 1;
