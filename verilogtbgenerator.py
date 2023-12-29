@@ -350,21 +350,39 @@ def instantiate_dut(module_name, inputs_with_bits, output_with_bits):
     dut_instantiation += "\n  );\n\n"
     return dut_instantiation
 
-def initialize_inputs(inputs_with_bits, extracted_clock):
+def initialize_inputs(inputs_with_bits, extracted_clock, extracted_clock_edge, extracted_reset, extracted_reset_edge):
     initialization_code = "  // Initialize inputs\n"
+    if extracted_reset_edge == "posedge":
+        initialization_code += f"    {extracted_reset} = 1;\n"   
+    elif extracted_reset_edge == "negedge":
+        initialization_code += f"    {extracted_reset} = 0;\n"   
+
     for name in inputs_with_bits.keys():
-        if name not in [extracted_clock]:
+        if name not in [extracted_clock, extracted_reset]:
             initialization_code += f"    {name} = 0;\n"
-    initialization_code += "    #10;\n\n"
+      
+    if extracted_clock_edge == "posedge":
+        initialization_code += f"\t\t@(negedge {extracted_clock})\n" 
+    elif extracted_clock_edge == "negedge":
+        initialization_code += f"\t\t@(posedge {extracted_clock}) \n" 
+    else :
+        initialization_code += "    #10;\n\n"
+    
     return initialization_code
 
 
-def generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset):
+def generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset, isCombinational, extracted_clock_edge):
     random_test_cases = "    // Random Test Cases\n"
 
     random_test_cases += "    integer i;\n"
     random_test_cases += "    for (i = 0; i < 5000; i = i + 1) begin\n"
-    random_test_cases += "      #10;\n"
+    if (isCombinational):
+        random_test_cases += "      #10;\n"
+    elif (extracted_clock_edge == "posedge"):
+        random_test_cases += f"\t\t@(negedge {extracted_clock})\n"
+    elif (extracted_clock_edge == "negedge"):
+        random_test_cases += f"\t\t@(posedge {extracted_clock}) \n"
+
     for name, bits in inputs_with_bits.items():
         if name not in [extracted_clock, extracted_reset]:
             random_test_cases += f"      {name} = $random();\n"
@@ -393,6 +411,7 @@ def tb_generator(verilog_file, tb_file):
     extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
     parsed_ifs = parse_if_statements(rtl_code)
     extracted_non_blocking_assignments = extract_non_blocking_assignments(rtl_code)
+    extracted_logical_operators = extract_logical_operators(rtl_code)
     extracted_always_blocks = extract_always_blocks(rtl_code)
     extracted_clock_reset = extract_clock_reset(rtl_code)
     extracted_clock = extracted_clock_reset["clockName"]
@@ -425,10 +444,10 @@ def tb_generator(verilog_file, tb_file):
     
     # Initialize inputs
     if (isCombinational == False):
-        testbench_code += initialize_inputs(inputs_with_bits, extracted_clock)
+        testbench_code += initialize_inputs(inputs_with_bits, extracted_clock, extracted_clock_edge, extracted_reset, extracted_reset_edge)
 
     # Generate random test cases
-    testbench_code += generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset)
+    testbench_code += generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset, isCombinational, extracted_clock_edge)
 
     # End initial block
     testbench_code += end_initial_block()
@@ -455,6 +474,4 @@ tb_file = "binarytb.v"
 testbench_code = tb_generator(verilog_file, tb_file)
 
 # TODO 
-# instead #10 make it @(negedge clk)
-# reset = 1; or reset = 0;
 # directed cases
