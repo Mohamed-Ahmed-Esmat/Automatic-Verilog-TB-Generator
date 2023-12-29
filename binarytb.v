@@ -1,85 +1,45 @@
-// Testbench for BinaryCounter
+// Testbench for SimpleCounter
 `timescale 1ns / 1ps
 
-module BinaryCounter_tb;
+module SimpleCounter_tb;
 
-  reg clock;
-  clock = 0;
-  always #5 clock = ~clock;
+  reg clk;
+  initial clk = 0;
+  always #5 clk = ~clk;
 
   reg reset;
-  reg x;
-  reg y;
-  reg a;
-  reg c;
-  reg d;
-  reg g;
-  reg f;
-  reg [31:0] b;
+  integer i;
 
-  wire [5:0] count;
-  wire result;
+  wire [3:0] count;
 
-  BinaryCounter DUT (
-    .clock(clock),
+  SimpleCounter DUT (
+    .clk(clk),
     .reset(reset),
-    .x(x),
-    .y(y),
-    .a(a),
-    .c(c),
-    .d(d),
-    .g(g),
-    .f(f),
-    .b(b),
-    .count(count),
-    .result(result)
+    .count(count)
   );
 
   initial begin
   // Initialize inputs
     reset = 1;
-    x = 0;
-    y = 0;
-    a = 0;
-    c = 0;
-    d = 0;
-    g = 0;
-    f = 0;
-    b = 0;
-		@(posedge clock); 
+		@(negedge clk);
+  // Unactivating reset
+    reset = 0;
 
 
 	//Direct Case
 
-		x = 1;
-		y = 0;
-		a = 4'b0000;
-		c = 1;
-		d = 0;
-		g = 1;
-		f = 0;
-		b = 4275100180;
-		@(posedge clock); 
+		@(negedge clk);
 
 
     // Random Test Cases
-    integer i;
     for (i = 0; i < 5000; i = i + 1) begin
-		@(posedge clock); 
-      x = $random();
-      y = $random();
-      a = $random();
-      c = $random();
-      d = $random();
-      g = $random();
-      f = $random();
-      b = $random();
+		@(negedge clk);
     end
 
   end
 
   // Monitoring signals
 initial begin
-	$monitor("x = %b, y = %b, a = %b, c = %b, d = %b, g = %b, f = %b, b = %b, count = %b, result = %b", x, y, a, c, d, g, f, b, count, result);
+	$monitor("count = %b", count);
 end
 endmodule

@@ -365,7 +365,7 @@ def generate_clock_signal(clock_name):
     if (clock_name == ""):
         return ""
     clock_signal = f"  reg {clock_name};\n"
-    clock_signal += f"  {clock_name} = 0;\n"
+    clock_signal += f"  initial {clock_name} = 0;\n"
     clock_signal += f"  always #5 {clock_name} = ~{clock_name};\n\n"
     return clock_signal
 
@@ -378,6 +378,7 @@ def generate_input_declarations(inputs_with_bits, extracted_clock):
             input_declarations += f"  reg {name};\n"
         else:
             input_declarations += f"  reg [{bits-1}:0] {name};\n"
+    input_declarations += "  integer i;\n"
     input_declarations += "\n"
     return input_declarations
 
@@ -415,13 +416,18 @@ def initialize_inputs(inputs_with_bits, extracted_clock, extracted_clock_edge, e
         initialization_code += f"\t\t@(posedge {extracted_clock}); \n" 
     else :
         initialization_code += "    #10;\n\n"
-    
+
+    initialization_code += "  // Unactivating reset\n"
+    if extracted_reset_edge == "posedge":
+        initialization_code += f"    {extracted_reset} = 0;\n"   
+    elif extracted_reset_edge == "negedge":
+        initialization_code += f"    {extracted_reset} = 1;\n"  
     return initialization_code
 
 def generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset, isCombinational, extracted_clock_edge):
     random_test_cases = "    // Random Test Cases\n"
 
-    random_test_cases += "    integer i;\n"
+   
     random_test_cases += "    for (i = 0; i < 5000; i = i + 1) begin\n"
     if (isCombinational):
         random_test_cases += "      #10;\n"
