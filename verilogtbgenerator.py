@@ -229,94 +229,141 @@ def extract_non_blocking_assignments(verilog_code):
 
     return non_blocking_assignments
 
-def write_testbench(module_name, inputs_with_bits, outputs_with_bits, case_conditions, parsed_ifs, extracted_clock, extracted_reset):
-    testbench = f"// Testbench for {module_name}\n"
-    testbench += f"`timescale 1ns / 1ps\n\n"
-    testbench += f"module {module_name}_tb;\n\n"
+def moniter_displayer(monitor_signals):
+    monitor_code = "\n  // Monitoring signals\n"
+    monitor_format = ', '.join([f'{signal} = %b' for signal in monitor_signals])
+    monitor_code += f"initial begin\n"
+    monitor_code += f" $monitor(\"{monitor_format}\", {', '.join(monitor_signals)});\n"
+    monitor_code += "end\n"
+    return monitor_code
 
-    # Generate a clock with the name specified in extracted_clock
-    testbench += f"  reg {extracted_clock};\n"
-    testbench += f"  {extracted_clock} = 0;\n"
-    testbench += f"  always #5 {extracted_clock} = ~{extracted_clock};\n\n"
+def generate_clock_signal(clock_name):
+    clock_signal = f"  reg {clock_name};\n"
+    clock_signal += f"  {clock_name} = 0;\n"
+    clock_signal += f"  always #5 {clock_name} = ~{clock_name};\n\n"
+    return clock_signal
 
-    # Declare regs for inputs and wires for outputs
+def generate_input_declarations(inputs_with_bits):
+    input_declarations = ""
     for name, bits in inputs_with_bits.items():
-        if name == extracted_clock:
-            continue
         if bits == 1:
-            testbench += f"  reg {name};\n"
+            input_declarations += f"  reg {name};\n"
         else:
-            testbench += f"  reg [{bits-1}:0] {name};\n"
-    testbench += "\n"
+            input_declarations += f"  reg [{bits-1}:0] {name};\n"
+    input_declarations += "\n"
+    return input_declarations
+
+def generate_output_declarations(output_with_bits):
+    output_declarations = ""
+    for name, bits in output_with_bits.items():
+        if bits == 1:
+            output_declarations += f"  wire {name};\n"
+        else:
+            output_declarations += f"  wire [{bits-1}:0] {name};\n"
+    output_declarations += "\n"
+    return output_declarations
+
+def instantiate_dut(module_name, inputs_with_bits, output_with_bits):
+    dut_instantiation = f"  {module_name} DUT (\n"
+    all_ports = [f".{name}({name})" for name in list(inputs_with_bits.keys()) + list(output_with_bits.keys())]
+    dut_instantiation += ",\n".join(f"    {port}" for port in all_ports)
+    dut_instantiation += "\n  );\n\n"
+    return dut_instantiation
+
+def initialize_inputs(inputs_with_bits):
+    initialization_code = "  initial begin\n"
+    initialization_code += "    // Initialize inputs\n"
+    for name in inputs_with_bits.keys():
+        initialization_code += f"    {name} = 0;\n"
+    initialization_code += "    #10;\n\n"
+    return initialization_code
+
+def generate_random_test_cases(inputs_with_bits):
+    random_test_cases = "    // Random Test Cases\n"
+    random_test_cases += "    integer i;\n"
+    random_test_cases += "    for (i = 0; i < 5000; i = i + 1) begin\n"
+    random_test_cases += "      #10;\n"
+    for name, bits in inputs_with_bits.items():
+        random_test_cases += f"      {name} = $random();\n"
+    random_test_cases += "    end\n\n"
+    return random_test_cases
+
+def end_initial_block():
+    return "  end\n"
+
+def tb_generator(verilog_file, tb_file):
+    file = open(verilog_file, 'r')
+    rtl_code = file.read()
+    rtl_code = remove_comments(rtl_code)
+    rtl_code = " ".join(rtl_code.split())
+    module_name = extract_module_name(rtl_code)
+    input_names = extract_input_names(rtl_code)
+    output_names = extract_output_names(rtl_code)
+    reg_names = extract_reg_names(rtl_code)
+    wire_names = extract_wire_names(rtl_code)
+    inputs_with_bits = assign_bits_to_signals(input_names)
+    output_with_bits = assign_bits_to_signals(output_names)
+    reg_with_bits = assign_bits_to_signals(reg_names)
+    wire_with_bits = assign_bits_to_signals(wire_names)
+    case_conditions = extract_case_conditions(rtl_code)
+    extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
+    parsed_ifs = parse_if_statements(rtl_code)
+    extracted_non_blocking_assignments = extract_non_blocking_assignments(rtl_code)
+    extracted_always_blocks = extract_always_blocks(rtl_code)
     
-    for name, bits in outputs_with_bits.items():
-        if bits == 1:
-            testbench += f"  wire {name};\n"
-        else:
-            testbench += f"  wire [{bits-1}:0] {name};\n"
-    testbench += "\n"
+    tbfile = open(tb_file, "w")
+
+    extracted_clock = 'clock'
+    extracted_reset = 'reset'
+
+    # Generate testbench code
+    testbench_code = ""
+    testbench_code += f"// Testbench for {module_name}\n"
+    testbench_code += f"`timescale 1ns / 1ps\n\n"
+    testbench_code += f"module {module_name}_tb;\n\n"
+    
+    # Generate clock signal
+    testbench_code += generate_clock_signal(extracted_clock)
+
+    # Generate input and output declarations
+    testbench_code += generate_input_declarations(inputs_with_bits)
+    testbench_code += generate_output_declarations(output_with_bits)
 
     # Instantiate the DUT
-    testbench += f"  {module_name} DUT (\n"
-    all_ports = [f".{name}({name})" for name in list(inputs_with_bits.keys()) + list(outputs_with_bits.keys())]
-    testbench += ",\n".join(f"    {port}" for port in all_ports)
-    testbench += "\n  );\n\n"
+    testbench_code += instantiate_dut(module_name, inputs_with_bits, output_with_bits)
 
-    # Add test logic
-    testbench += "  initial begin\n"
-    testbench += "    // Initialize inputs\n"
-    for name in inputs_with_bits.keys():
-        if name not in [extracted_clock]:
-            testbench += f"    {name} = 0;\n"
-    testbench += "    #10;\n\n"
+    # Initialize inputs
+    testbench_code += initialize_inputs(inputs_with_bits)
 
-    # Random Test Cases
-    testbench += "    // Random Test Cases\n"
-    testbench += "    integer i;\n"
-    testbench += "    for (i = 0; i < 5000; i = i + 1) begin\n"
-    testbench += "      #10;\n"
-    for name, bits in inputs_with_bits.items():
-        if name not in [extracted_clock, extracted_reset]:
-            testbench += f"      {name} = $random();\n"
-    testbench += "    end\n\n"
+    # Generate random test cases
+    testbench_code += generate_random_test_cases(inputs_with_bits)
 
-    testbench += "  end\n"
-    testbench += "endmodule"
+    # End initial block
+    testbench_code += end_initial_block()
 
-    return testbench
+    # Generate monitor code
+    monitor_signals = list(inputs_with_bits.keys()) + list(output_with_bits.keys())
+    testbench_code += moniter_displayer(monitor_signals)
+
+    # End module
+    testbench_code += "endmodule"
+
+    tbfile.write(testbench_code)
+    tbfile.close()
+
+
+
 
 
 
 verilog_file = "binaryCounter.v"
 file = open(verilog_file, 'r')
 rtl_code = file.read()
-rtl_code = remove_comments(rtl_code) # Remove comments from the Verilog code
-rtl_code = " ".join(rtl_code.split()) # Remove extra spaces from the Verilog code
-module_name = extract_module_name(rtl_code) # Extract the module name from the Verilog code
-input_names = extract_input_names(rtl_code) # Extract the input names from the Verilog code
-output_names = extract_output_names(rtl_code) # Extract the output names from the Verilog code
-reg_names = extract_reg_names(rtl_code) # Extract the reg names from the Verilog code
-wire_names = extract_wire_names(rtl_code) # Extract the wire names from the Verilog code
-inputs_with_bits = assign_bits_to_signals(input_names) # Assign bit widths to the input signals
-output_with_bits = assign_bits_to_signals(output_names) # Assign bit widths to the output signals
-reg_with_bits = assign_bits_to_signals(reg_names) # Assign bit widths to the input signals
-wire_with_bits = assign_bits_to_signals(wire_names) # Assign bit widths to the output signals
-case_conditions = extract_case_conditions(rtl_code)
-extracted_continuous_assignments = extract_continuous_assignments(rtl_code)
-parsed_ifs = parse_if_statements(rtl_code)
-extracted_non_blocking_assignments = extract_non_blocking_assignments(rtl_code)
-
-extracted_always_blocks = extract_always_blocks(rtl_code)
 tb_file = "binarytb.v"
-tbfile = open(tb_file, "w")
-extracted_clock = 'clock'
-extracted_reset = 'reset'
-testbench_code = write_testbench(module_name, inputs_with_bits, output_with_bits, case_conditions, parsed_ifs,extracted_clock, extracted_reset)
-tbfile.write(testbench_code)
+testbench_code = tb_generator(verilog_file, tb_file)
 
 # TODO 
 # extract_clock(), extract_reset()
-# monitoring
 # instead #10 make it @(negedge clk)
 # reset = 1; or reset = 0;
 # directed cases
