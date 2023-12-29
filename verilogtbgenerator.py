@@ -229,6 +229,40 @@ def extract_non_blocking_assignments(verilog_code):
 
     return non_blocking_assignments
 
+def extract_logical_operators(verilog_code):
+    # Regular expression to match assignments
+    assignment_pattern = re.compile(r'\b(\w+)\s*=\s*([^;]*);')
+
+    # Find all matches in the Verilog code
+    matches = assignment_pattern.findall(verilog_code)
+
+    extracted_operators = []
+    for variable, expression in matches:
+        # Clean the expression (remove spaces)
+        cleaned_expression = expression.replace(' ', '')
+
+        # Check for binary logical operators (&&, ||, ^)
+        binary_operators = re.finditer(r'(\w+)\s*(\|\||&&|\^)\s*(\w+)', cleaned_expression)
+        for match in binary_operators:
+            operand1, operator, operand2 = match.groups()
+            extracted_operators.append({
+                'variable': variable,
+                'operator': operator,
+                'operands': [operand1, operand2]
+            })
+
+        # Check for unary operator '~'
+        if '~' in cleaned_expression:
+            unary_operator = re.search(r'~(\w+)', cleaned_expression)
+            if unary_operator:
+                extracted_operators.append({
+                    'variable': variable,
+                    'operator': '~',
+                    'operands': [unary_operator.group(1)]
+                })
+
+    return extracted_operators
+
 def extract_clock_reset(rtl_code):
     # Regular expression to match always blocks and their sensitivity lists
     always_block_pattern = re.compile(r'always\s*@\s*\((.*?)\)\s*begin(.*?)end', re.DOTALL)
