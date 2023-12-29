@@ -266,7 +266,7 @@ def extract_logical_operators(verilog_code):
 
 def extract_clock_reset(rtl_code):
     # Regular expression to match always blocks and their sensitivity lists
-    always_block_pattern = re.compile(r'always\s*@\s*\((.*?)\)\s*begin(.*?)end', re.DOTALL)
+    always_block_pattern = re.compile(r'always\s*@\s*\((.?)\)\s*begin(.?)end', re.DOTALL)
 
     # Initialize the result dictionary
     result = {'clockName': '', 'clockEdge': '', 'resetName': '', 'resetEdge': ''}
@@ -282,9 +282,12 @@ def extract_clock_reset(rtl_code):
         for edge, signal in edges:
             # Check if the signal is used in an if-statement (likely a reset)
             # Accommodate both 'if (reset)' and 'if (~reset)' conditions
-            if re.search(rf'\bif\s*\(\s*!?{signal}\b|\bif\s*\(\s*~{signal}\b', block_content, re.IGNORECASE):
+            if re.search(rf'\bif\s*\(\s*{signal}\s*\)', block_content, re.IGNORECASE):
                 result['resetName'] = signal
-                result['resetEdge'] = edge
+                result['resetEdge'] = 'posedge'
+            elif re.search(rf'\bif\s*\(\s*~{signal}\s*\)', block_content, re.IGNORECASE):
+                result['resetName'] = signal
+                result['resetEdge'] = 'negedge'
             else:
                 # If not in an if-statement, it's likely a clock
                 result['clockName'] = signal
