@@ -3,11 +3,6 @@
 
 module BinaryCounter_tb;
 
-  reg clock;
-  clock = 0;
-  always #5 clock = ~clock;
-
-  reg reset;
   reg x;
   reg y;
   reg a;
@@ -21,8 +16,6 @@ module BinaryCounter_tb;
   wire result;
 
   BinaryCounter DUT (
-    .clock(clock),
-    .reset(reset),
     .x(x),
     .y(y),
     .a(a),
@@ -36,18 +29,6 @@ module BinaryCounter_tb;
   );
 
   initial begin
-    // Initialize inputs
-    reset = 0;
-    x = 0;
-    y = 0;
-    a = 0;
-    c = 0;
-    d = 0;
-    g = 0;
-    f = 0;
-    b = 0;
-    #10;
-
     // Random Test Cases
     integer i;
     for (i = 0; i < 5000; i = i + 1) begin

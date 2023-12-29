@@ -269,8 +269,19 @@ def moniter_displayer(monitor_signals, extracted_clock, extracted_reset):
     monitor_code += "end\n"
     return monitor_code
 
+def is_combinatonal(clock):
+    if clock == "":
+        return True
+    else:
+        return False
+
+def generate_initial_block():  
+    initialization_code = "  initial begin\n"
+    return initialization_code
 
 def generate_clock_signal(clock_name):
+    if (clock_name == ""):
+        return ""
     clock_signal = f"  reg {clock_name};\n"
     clock_signal += f"  {clock_name} = 0;\n"
     clock_signal += f"  always #5 {clock_name} = ~{clock_name};\n\n"
@@ -306,13 +317,13 @@ def instantiate_dut(module_name, inputs_with_bits, output_with_bits):
     return dut_instantiation
 
 def initialize_inputs(inputs_with_bits, extracted_clock):
-    initialization_code = "  initial begin\n"
-    initialization_code += "    // Initialize inputs\n"
+    initialization_code = "  // Initialize inputs\n"
     for name in inputs_with_bits.keys():
         if name not in [extracted_clock]:
             initialization_code += f"    {name} = 0;\n"
     initialization_code += "    #10;\n\n"
     return initialization_code
+
 
 def generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset):
     random_test_cases = "    // Random Test Cases\n"
@@ -330,6 +341,7 @@ def end_initial_block():
     return "  end\n"
 
 def tb_generator(verilog_file, tb_file):
+    isCombinational = True
     file = open(verilog_file, 'r')
     rtl_code = file.read()
     rtl_code = remove_comments(rtl_code)
@@ -353,6 +365,7 @@ def tb_generator(verilog_file, tb_file):
     extracted_reset = extracted_clock_reset["resetName"]
     extracted_clock_edge = extracted_clock_reset["clockEdge"]
     extracted_reset_edge = extracted_clock_reset["resetEdge"]
+    isCombinational = is_combinatonal(extracted_clock)
     
     tbfile = open(tb_file, "w")
 
@@ -363,7 +376,8 @@ def tb_generator(verilog_file, tb_file):
     testbench_code += f"module {module_name}_tb;\n\n"
     
     # Generate clock signal
-    testbench_code += generate_clock_signal(extracted_clock)
+    if (isCombinational == False):
+        testbench_code += generate_clock_signal(extracted_clock)
 
     # Generate input and output declarations
     testbench_code += generate_input_declarations(inputs_with_bits, extracted_clock)
@@ -371,9 +385,13 @@ def tb_generator(verilog_file, tb_file):
 
     # Instantiate the DUT
     testbench_code += instantiate_dut(module_name, inputs_with_bits, output_with_bits)
-
+    
+    #G
+    testbench_code += generate_initial_block()
+    
     # Initialize inputs
-    testbench_code += initialize_inputs(inputs_with_bits, extracted_clock)
+    if (isCombinational == False):
+        testbench_code += initialize_inputs(inputs_with_bits, extracted_clock)
 
     # Generate random test cases
     testbench_code += generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset)
