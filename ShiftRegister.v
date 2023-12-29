@@ -2,17 +2,22 @@ module ShiftRegister (
     input wire clk,         // Clock input
     input wire reset,       // Reset input
     input wire shiftEnable, // Shift enable input
-    input wire [3:0] dataIn, // 4-bit data input
-    output reg [3:0] dataOut // 4-bit data output
+    input wire enable,      // Enable input for shifting left by 2
+    input wire [5:0] dataIn, // 6-bit data input
+    output reg [5:0] dataOut // 6-bit data output
 );
 
-    reg [3:0] shiftReg; // 4-bit shift register
+    reg [5:0] shiftReg; // 6-bit shift register
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            shiftReg <= 4'b0000; // Reset the shift register to 0
+            shiftReg <= 6'b000000; // Reset the shift register to 0
         end else if (shiftEnable) begin
-            shiftReg <= {shiftReg[2:0], dataIn[0]}; // Shift dataIn into the shift register
+            if (enable) begin
+                shiftReg <= {shiftReg[3:0], dataIn[1:0]}; // Shift dataIn left by 2 when enabled
+            end else begin
+                shiftReg <= {shiftReg[4:0], dataIn[0]}; // Shift dataIn into the shift register
+            end
         end
     end
 

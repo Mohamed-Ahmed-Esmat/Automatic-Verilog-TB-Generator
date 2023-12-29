@@ -9,15 +9,17 @@ module ShiftRegister_tb;
 
   reg reset;
   reg shiftEnable;
-  reg [3:0] dataIn;
+  reg enable;
+  reg [5:0] dataIn;
   integer i;
 
-  wire [3:0] dataOut;
+  wire [5:0] dataOut;
 
   ShiftRegister DUT (
     .clk(clk),
     .reset(reset),
     .shiftEnable(shiftEnable),
+    .enable(enable),
     .dataIn(dataIn),
     .dataOut(dataOut)
   );
@@ -26,6 +28,7 @@ module ShiftRegister_tb;
   // Initialize inputs
     reset = 1;
     shiftEnable = 0;
+    enable = 0;
     dataIn = 0;
 		@(negedge clk);
   // Unactivating reset
@@ -35,7 +38,8 @@ module ShiftRegister_tb;
 	//Direct Case
 
 		shiftEnable = 1;
-		dataIn = 6;
+		enable = 1;
+		dataIn = 49;
 		@(negedge clk);
 
 
@@ -43,6 +47,7 @@ module ShiftRegister_tb;
     for (i = 0; i < 5000; i = i + 1) begin
 		@(negedge clk);
       shiftEnable = $random();
+      enable = $random();
       dataIn = $random();
     end
 
@@ -50,6 +55,6 @@ module ShiftRegister_tb;
 
   // Monitoring signals
 initial begin
-	$monitor("shiftEnable = %b, dataIn = %b, dataOut = %b", shiftEnable, dataIn, dataOut);
+	$monitor("shiftEnable = %b, enable = %b, dataIn = %b, dataOut = %b", shiftEnable, enable, dataIn, dataOut);
 end
 endmodule

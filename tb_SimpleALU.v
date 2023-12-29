@@ -22,9 +22,9 @@ module SimpleALU_tb;
 
 	//Direct Case
 
-		operandA = 5;
-		operandB = 15;
-		aluOp = 3'b011;
+		operandA = 14;
+		operandB = 4;
+		aluOp = 3'b010;
 		#10;
 
 

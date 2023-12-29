@@ -548,5 +548,3 @@ rtl_code = file.read()
 tb_file = "tb_" + verilog_file
 testbench_code = tb_generator(verilog_file, tb_file)
 
-# TODO 
-# directed cases
