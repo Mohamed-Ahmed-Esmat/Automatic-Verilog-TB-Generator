@@ -313,3 +313,10 @@ extracted_clock = 'clock'
 extracted_reset = 'reset'
 testbench_code = write_testbench(module_name, inputs_with_bits, output_with_bits, case_conditions, parsed_ifs,extracted_clock, extracted_reset)
 tbfile.write(testbench_code)
+
+# TODO 
+# extract_clock(), extract_reset()
+# monitoring
+# instead #10 make it @(negedge clk)
+# reset = 1; or reset = 0;
+# directed cases
