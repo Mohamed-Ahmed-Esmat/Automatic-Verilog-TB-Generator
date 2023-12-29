@@ -1,4 +1,5 @@
 import re
+import random
 
 def extract_module_name(verilog_code):
     pattern = re.compile(r'\bmodule\b\s*(\w+)')
@@ -295,11 +296,58 @@ def extract_clock_reset(rtl_code):
 
     return result
 
+def generate_direct_test_cases(parsed_ifs, case_conditions, inputs_with_bits, extracted_clock, extracted_reset):
+    test_cases = {}
+
+    for input_name, bits in inputs_with_bits.items():
+        if input_name == extracted_clock or input_name == extracted_reset:
+            continue
+        # Check if input is in case_conditions
+        if input_name in case_conditions:
+            conditions = case_conditions[input_name]
+            valid_conditions = [c for c in conditions if c.replace("'", "").replace("b", "").isdigit()]
+            if valid_conditions:
+                # Choose a random condition from the valid ones
+                test_cases[input_name] = random.choice(valid_conditions)
+            else:
+                test_cases[input_name] = generate_random_value(bits)
+        else:
+            parsed_if = next((item for item in parsed_ifs if item['variable'] == input_name), None)
+            if parsed_if:
+                test_cases[input_name] = generate_value_based_on_condition(parsed_if, bits)
+            else:
+                test_cases[input_name] = generate_random_value(bits)
+
+    return test_cases
+
+def generate_random_value(bits):
+    return random.randint(0, 2**bits - 1)
+
+def generate_value_based_on_condition(condition, bits):
+    operator = condition['operator']
+    value = int(condition['value'])
+    max_val = 2**bits - 1
+
+    if operator == '==':
+        return value
+    elif operator == '!=':
+        return random.choice([i for i in range(max_val + 1) if i != value])
+    elif operator == '>':
+        return random.randint(min(value + 1, max_val), max_val)
+    elif operator == '<':
+        return random.randint(0, max(value - 1, 0))
+    elif operator == '>=':
+        return random.randint(value, max_val)
+    elif operator == '<=':
+        return random.randint(0, value)
+    else:
+        return generate_random_value(bits)
+
 def moniter_displayer(monitor_signals, extracted_clock, extracted_reset):
     monitor_code = "\n  // Monitoring signals\n"
     monitor_format = ', '.join([f'{signal} = %b' for signal in monitor_signals if signal not in [extracted_clock, extracted_reset]])
     monitor_code += f"initial begin\n"
-    monitor_code += f" $monitor(\"{monitor_format}\", {', '.join(signal for signal in monitor_signals if signal not in [extracted_clock, extracted_reset])});\n"
+    monitor_code += f"\t$monitor(\"{monitor_format}\", {', '.join(signal for signal in monitor_signals if signal not in [extracted_clock, extracted_reset])});\n"
     monitor_code += "end\n"
     return monitor_code
 
@@ -360,16 +408,15 @@ def initialize_inputs(inputs_with_bits, extracted_clock, extracted_clock_edge, e
     for name in inputs_with_bits.keys():
         if name not in [extracted_clock, extracted_reset]:
             initialization_code += f"    {name} = 0;\n"
-      
+
     if extracted_clock_edge == "posedge":
-        initialization_code += f"\t\t@(negedge {extracted_clock})\n" 
+        initialization_code += f"\t\t@(negedge {extracted_clock});\n" 
     elif extracted_clock_edge == "negedge":
-        initialization_code += f"\t\t@(posedge {extracted_clock}) \n" 
+        initialization_code += f"\t\t@(posedge {extracted_clock}); \n" 
     else :
         initialization_code += "    #10;\n\n"
     
     return initialization_code
-
 
 def generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset, isCombinational, extracted_clock_edge):
     random_test_cases = "    // Random Test Cases\n"
@@ -379,9 +426,9 @@ def generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_rese
     if (isCombinational):
         random_test_cases += "      #10;\n"
     elif (extracted_clock_edge == "posedge"):
-        random_test_cases += f"\t\t@(negedge {extracted_clock})\n"
+        random_test_cases += f"\t\t@(negedge {extracted_clock});\n"
     elif (extracted_clock_edge == "negedge"):
-        random_test_cases += f"\t\t@(posedge {extracted_clock}) \n"
+        random_test_cases += f"\t\t@(posedge {extracted_clock}); \n"
 
     for name, bits in inputs_with_bits.items():
         if name not in [extracted_clock, extracted_reset]:
@@ -391,6 +438,24 @@ def generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_rese
 
 def end_initial_block():
     return "  end\n"
+
+def direct_case(direct_test_case, isCombinational, extracted_clock_edge, extracted_clock):
+    directCase = "\n\n"
+    directCase += "\t//Direct Case\n\n"
+    
+    for test_case_name, test_case_value in direct_test_case.items():
+        directCase += f"\t\t{test_case_name} = {test_case_value};\n"
+
+    if isCombinational:
+        directCase += "\t\t#10;\n"
+    elif extracted_clock_edge == "posedge":
+        directCase += f"\t\t@(negedge {extracted_clock});\n"
+    elif extracted_clock_edge == "negedge":
+        directCase += f"\t\t@(posedge {extracted_clock}); \n"
+
+    directCase += "\n\n"
+    return directCase
+
 
 def tb_generator(verilog_file, tb_file):
     isCombinational = True
@@ -419,6 +484,8 @@ def tb_generator(verilog_file, tb_file):
     extracted_clock_edge = extracted_clock_reset["clockEdge"]
     extracted_reset_edge = extracted_clock_reset["resetEdge"]
     isCombinational = is_combinatonal(extracted_clock)
+    direct_test_cases = generate_direct_test_cases(parsed_ifs, case_conditions, inputs_with_bits, extracted_clock, extracted_reset)
+    print(direct_test_cases)
     
     tbfile = open(tb_file, "w")
 
@@ -439,12 +506,15 @@ def tb_generator(verilog_file, tb_file):
     # Instantiate the DUT
     testbench_code += instantiate_dut(module_name, inputs_with_bits, output_with_bits)
     
-    #G
+    # Write initial block
     testbench_code += generate_initial_block()
     
     # Initialize inputs
     if (isCombinational == False):
         testbench_code += initialize_inputs(inputs_with_bits, extracted_clock, extracted_clock_edge, extracted_reset, extracted_reset_edge)
+
+    #direct test case
+    testbench_code += direct_case(direct_test_cases, isCombinational, extracted_clock_edge, extracted_clock)
 
     # Generate random test cases
     testbench_code += generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset, isCombinational, extracted_clock_edge)

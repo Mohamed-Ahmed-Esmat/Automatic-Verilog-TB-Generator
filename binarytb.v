@@ -46,11 +46,26 @@ module BinaryCounter_tb;
     g = 0;
     f = 0;
     b = 0;
-		@(posedge clock) 
+		@(posedge clock); 
+
+
+	//Direct Case
+
+		x = 1;
+		y = 0;
+		a = 4'b0000;
+		c = 1;
+		d = 0;
+		g = 1;
+		f = 0;
+		b = 4275100180;
+		@(posedge clock); 
+
+
     // Random Test Cases
     integer i;
     for (i = 0; i < 5000; i = i + 1) begin
-		@(posedge clock) 
+		@(posedge clock); 
       x = $random();
       y = $random();
       a = $random();
@@ -65,6 +80,6 @@ module BinaryCounter_tb;
 
   // Monitoring signals
 initial begin
- $monitor("x = %b, y = %b, a = %b, c = %b, d = %b, g = %b, f = %b, b = %b, count = %b, result = %b", x, y, a, c, d, g, f, b, count, result);
+	$monitor("x = %b, y = %b, a = %b, c = %b, d = %b, g = %b, f = %b, b = %b, count = %b, result = %b", x, y, a, c, d, g, f, b, count, result);
 end
 endmodule

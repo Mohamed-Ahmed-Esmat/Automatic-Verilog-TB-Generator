@@ -24,7 +24,7 @@ module BinaryCounter(
         else      // Increment on each rising edge of the clock
             count <= count + 1;
 
-        case (r)
+        case (a)
         w:
 
         4'b0000:
