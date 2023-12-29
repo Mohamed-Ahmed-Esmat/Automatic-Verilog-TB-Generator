@@ -17,7 +17,7 @@ module BinaryCounter(
     wire [3:0] w;
 
     // Define a 4-bit register to hold the count
-    always @(posedge clock or posedge reset)
+    always @(negedge clock or posedge reset)
     begin
         if (reset)  // Reset condition
             count <= 4'b0000;

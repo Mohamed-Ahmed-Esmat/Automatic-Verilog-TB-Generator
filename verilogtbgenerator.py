@@ -229,6 +229,38 @@ def extract_non_blocking_assignments(verilog_code):
 
     return non_blocking_assignments
 
+def extract_clock_reset(rtl_code):
+    # Regular expression to match always blocks and their sensitivity lists
+    always_block_pattern = re.compile(r'always\s*@\s*\((.*?)\)\s*begin(.*?)end', re.DOTALL)
+
+    # Initialize the result dictionary
+    result = {'clockName': '', 'clockEdge': '', 'resetName': '', 'resetEdge': ''}
+
+    # Find all always blocks in the RTL code
+    always_blocks = always_block_pattern.findall(rtl_code)
+
+    for sensitivity_list, block_content in always_blocks:
+        # Check for posedge or negedge in the sensitivity list
+        edge_pattern = re.compile(r'(posedge|negedge)\s+(\w+)')
+        edges = edge_pattern.findall(sensitivity_list)
+
+        for edge, signal in edges:
+            # Check if the signal is used in an if-statement (likely a reset)
+            # Accommodate both 'if (reset)' and 'if (~reset)' conditions
+            if re.search(rf'\bif\s*\(\s*!?{signal}\b|\bif\s*\(\s*~{signal}\b', block_content, re.IGNORECASE):
+                result['resetName'] = signal
+                result['resetEdge'] = edge
+            else:
+                # If not in an if-statement, it's likely a clock
+                result['clockName'] = signal
+                result['clockEdge'] = edge
+
+        # Break if both clock and reset are found
+        if result['clockName'] and result['resetName']:
+            break
+
+    return result
+
 def moniter_displayer(monitor_signals, extracted_clock, extracted_reset):
     monitor_code = "\n  // Monitoring signals\n"
     monitor_format = ', '.join([f'{signal} = %b' for signal in monitor_signals if signal not in [extracted_clock, extracted_reset]])
@@ -244,9 +276,11 @@ def generate_clock_signal(clock_name):
     clock_signal += f"  always #5 {clock_name} = ~{clock_name};\n\n"
     return clock_signal
 
-def generate_input_declarations(inputs_with_bits):
+def generate_input_declarations(inputs_with_bits, extracted_clock):
     input_declarations = ""
     for name, bits in inputs_with_bits.items():
+        if name == extracted_clock:
+            continue
         if bits == 1:
             input_declarations += f"  reg {name};\n"
         else:
@@ -275,7 +309,7 @@ def initialize_inputs(inputs_with_bits, extracted_clock):
     initialization_code = "  initial begin\n"
     initialization_code += "    // Initialize inputs\n"
     for name in inputs_with_bits.keys():
-       if name not in [extracted_clock]:
+        if name not in [extracted_clock]:
             initialization_code += f"    {name} = 0;\n"
     initialization_code += "    #10;\n\n"
     return initialization_code
@@ -314,11 +348,13 @@ def tb_generator(verilog_file, tb_file):
     parsed_ifs = parse_if_statements(rtl_code)
     extracted_non_blocking_assignments = extract_non_blocking_assignments(rtl_code)
     extracted_always_blocks = extract_always_blocks(rtl_code)
+    extracted_clock_reset = extract_clock_reset(rtl_code)
+    extracted_clock = extracted_clock_reset["clockName"]
+    extracted_reset = extracted_clock_reset["resetName"]
+    extracted_clock_edge = extracted_clock_reset["clockEdge"]
+    extracted_reset_edge = extracted_clock_reset["resetEdge"]
     
     tbfile = open(tb_file, "w")
-
-    extracted_clock = 'clock'
-    extracted_reset = 'reset'
 
     # Generate testbench code
     testbench_code = ""
@@ -330,7 +366,7 @@ def tb_generator(verilog_file, tb_file):
     testbench_code += generate_clock_signal(extracted_clock)
 
     # Generate input and output declarations
-    testbench_code += generate_input_declarations(inputs_with_bits)
+    testbench_code += generate_input_declarations(inputs_with_bits, extracted_clock)
     testbench_code += generate_output_declarations(output_with_bits)
 
     # Instantiate the DUT
@@ -367,7 +403,6 @@ tb_file = "binarytb.v"
 testbench_code = tb_generator(verilog_file, tb_file)
 
 # TODO 
-# extract_clock(), extract_reset()
 # instead #10 make it @(negedge clk)
 # reset = 1; or reset = 0;
 # directed cases

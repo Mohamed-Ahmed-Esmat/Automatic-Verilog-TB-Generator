@@ -7,7 +7,6 @@ module BinaryCounter_tb;
   clock = 0;
   always #5 clock = ~clock;
 
-  reg clock;
   reg reset;
   reg x;
   reg y;
