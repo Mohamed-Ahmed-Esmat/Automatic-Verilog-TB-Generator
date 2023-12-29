@@ -229,13 +229,14 @@ def extract_non_blocking_assignments(verilog_code):
 
     return non_blocking_assignments
 
-def moniter_displayer(monitor_signals):
+def moniter_displayer(monitor_signals, extracted_clock, extracted_reset):
     monitor_code = "\n  // Monitoring signals\n"
-    monitor_format = ', '.join([f'{signal} = %b' for signal in monitor_signals])
+    monitor_format = ', '.join([f'{signal} = %b' for signal in monitor_signals if signal not in [extracted_clock, extracted_reset]])
     monitor_code += f"initial begin\n"
-    monitor_code += f" $monitor(\"{monitor_format}\", {', '.join(monitor_signals)});\n"
+    monitor_code += f" $monitor(\"{monitor_format}\", {', '.join(signal for signal in monitor_signals if signal not in [extracted_clock, extracted_reset])});\n"
     monitor_code += "end\n"
     return monitor_code
+
 
 def generate_clock_signal(clock_name):
     clock_signal = f"  reg {clock_name};\n"
@@ -270,21 +271,24 @@ def instantiate_dut(module_name, inputs_with_bits, output_with_bits):
     dut_instantiation += "\n  );\n\n"
     return dut_instantiation
 
-def initialize_inputs(inputs_with_bits):
+def initialize_inputs(inputs_with_bits, extracted_clock):
     initialization_code = "  initial begin\n"
     initialization_code += "    // Initialize inputs\n"
     for name in inputs_with_bits.keys():
-        initialization_code += f"    {name} = 0;\n"
+       if name not in [extracted_clock]:
+            initialization_code += f"    {name} = 0;\n"
     initialization_code += "    #10;\n\n"
     return initialization_code
 
-def generate_random_test_cases(inputs_with_bits):
+def generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset):
     random_test_cases = "    // Random Test Cases\n"
+
     random_test_cases += "    integer i;\n"
     random_test_cases += "    for (i = 0; i < 5000; i = i + 1) begin\n"
     random_test_cases += "      #10;\n"
     for name, bits in inputs_with_bits.items():
-        random_test_cases += f"      {name} = $random();\n"
+        if name not in [extracted_clock, extracted_reset]:
+            random_test_cases += f"      {name} = $random();\n"
     random_test_cases += "    end\n\n"
     return random_test_cases
 
@@ -333,17 +337,17 @@ def tb_generator(verilog_file, tb_file):
     testbench_code += instantiate_dut(module_name, inputs_with_bits, output_with_bits)
 
     # Initialize inputs
-    testbench_code += initialize_inputs(inputs_with_bits)
+    testbench_code += initialize_inputs(inputs_with_bits, extracted_clock)
 
     # Generate random test cases
-    testbench_code += generate_random_test_cases(inputs_with_bits)
+    testbench_code += generate_random_test_cases(inputs_with_bits, extracted_clock, extracted_reset)
 
     # End initial block
     testbench_code += end_initial_block()
 
     # Generate monitor code
     monitor_signals = list(inputs_with_bits.keys()) + list(output_with_bits.keys())
-    testbench_code += moniter_displayer(monitor_signals)
+    testbench_code += moniter_displayer(monitor_signals, extracted_clock, extracted_reset)
 
     # End module
     testbench_code += "endmodule"

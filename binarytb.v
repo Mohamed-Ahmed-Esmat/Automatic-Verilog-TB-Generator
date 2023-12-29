@@ -38,7 +38,6 @@ module BinaryCounter_tb;
 
   initial begin
     // Initialize inputs
-    clock = 0;
     reset = 0;
     x = 0;
     y = 0;
@@ -54,8 +53,6 @@ module BinaryCounter_tb;
     integer i;
     for (i = 0; i < 5000; i = i + 1) begin
       #10;
-      clock = $random();
-      reset = $random();
       x = $random();
       y = $random();
       a = $random();
@@ -70,6 +67,6 @@ module BinaryCounter_tb;
 
   // Monitoring signals
 initial begin
- $monitor("clock = %b, reset = %b, x = %b, y = %b, a = %b, c = %b, d = %b, g = %b, f = %b, b = %b, count = %b, result = %b", clock, reset, x, y, a, c, d, g, f, b, count, result);
+ $monitor("x = %b, y = %b, a = %b, c = %b, d = %b, g = %b, f = %b, b = %b, count = %b, result = %b", x, y, a, c, d, g, f, b, count, result);
 end
 endmodule
