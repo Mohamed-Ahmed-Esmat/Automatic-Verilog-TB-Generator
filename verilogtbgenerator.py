@@ -491,7 +491,6 @@ def tb_generator(verilog_file, tb_file):
     extracted_reset_edge = extracted_clock_reset["resetEdge"]
     isCombinational = is_combinatonal(extracted_clock)
     direct_test_cases = generate_direct_test_cases(parsed_ifs, case_conditions, inputs_with_bits, extracted_clock, extracted_reset)
-    print(direct_test_cases)
     
     tbfile = open(tb_file, "w")
 
@@ -543,10 +542,10 @@ def tb_generator(verilog_file, tb_file):
 
 
 
-verilog_file = "binaryCounter.v"
+verilog_file = "SimpleALU.v"
 file = open(verilog_file, 'r')
 rtl_code = file.read()
-tb_file = "binarytb.v"
+tb_file = "tb_" + verilog_file
 testbench_code = tb_generator(verilog_file, tb_file)
 
 # TODO 
