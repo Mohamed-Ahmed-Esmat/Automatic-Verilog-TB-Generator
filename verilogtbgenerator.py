@@ -545,7 +545,7 @@ def tb_generator(verilog_file, tb_file):
 
 
 
-verilog_file = "SimpleALU.v"
+verilog_file = "MUX4to1.v"
 file = open(verilog_file, 'r')
 rtl_code = file.read()
 tb_file = "tb_" + verilog_file
