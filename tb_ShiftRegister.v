@@ -35,7 +35,7 @@ module ShiftRegister_tb;
 	//Direct Case
 
 		enable = 1;
-		dataIn = 15;
+		dataIn = 30;
 		@(negedge clk);
 
 
