@@ -26,11 +26,11 @@ module multiplexer_4to1_tb;
 
 	//Direct Case
 
-		sel = 2'b00;
-		in0 = 6;
-		in1 = 2;
-		in2 = 4;
-		in3 = 1;
+		sel = 2'b11;
+		in0 = 3;
+		in1 = 13;
+		in2 = 7;
+		in3 = 14;
 		#10;
 
 

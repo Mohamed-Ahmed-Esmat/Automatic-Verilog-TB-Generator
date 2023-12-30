@@ -11,8 +11,8 @@ def extract_module_name(verilog_code):
         return None  # Return None if no module name is found
 
 def extract_input_names(verilog_code):
-    
-    input_pattern = re.compile(r'(?:\binput\b)\s*(?:reg|wire)?\s*(?:\[[0-9]*:[0-9]*\])?\s*(\w+)\s*(?:[,; ]|$)')
+
+    input_pattern = re.compile(r'(?:\binput\b)\s*(?:reg|wire)?\s*(?:\[[0-9]*:[0-9]*\])?\s*(\w+)\s*(?:[,; ]|\n|$)')
     matches = input_pattern.findall(verilog_code)
     
     return matches
@@ -20,7 +20,7 @@ def extract_input_names(verilog_code):
 def extract_output_names(verilog_code):
 
     # Use a different pattern to match inputs and outputs
-    pattern = re.compile(r'(?:\boutput\b)\s*(?:reg|wire)?\s*(?:\[[0-9]*:[0-9]*\])?\s*(\w+)\s*(?:[,; ]|$)')
+    pattern = re.compile(r'(?:\boutput\b)\s*(?:reg|wire)?\s*(?:\[[0-9]*:[0-9]*\])?\s*(\w+)\s*(?:[,; ]|\n|$)')
     matches = pattern.findall(verilog_code)
 
     return matches
@@ -40,7 +40,7 @@ def extract_wire_names(verilog_code):
     return matches
 
 def extract_bit_width(verilog_code, signal_name):
-    pattern = re.compile(r'\b(?:input|output|reg|wire)\s*\[([0-9]+)\s*:\s*[0-9]+\]\s*' + re.escape(signal_name) + r'\s*[,; ]')
+    pattern = re.compile(r'\b(?:input|output|reg|wire)\s*\[([0-9]+)\s*:\s*[0-9]+\]\s*' + re.escape(signal_name) + r'\s*(?:[,;]|\n|$)')
     match = pattern.search(verilog_code)
     
     if match:

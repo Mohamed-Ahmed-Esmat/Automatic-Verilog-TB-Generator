@@ -4,7 +4,7 @@ module multiplexer_4to1 (
     input wire [3:0] in1,
     input wire [3:0] in2,
     input wire [3:0] in3,
-    output reg [3:0] out,
+    output reg [3:0] out
 );
 
 always @* begin
