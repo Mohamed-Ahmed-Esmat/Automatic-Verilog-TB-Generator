@@ -13,7 +13,7 @@ module SimpleALU (
             3'b011: result = operandA | operandB; // Bitwise OR
             3'b100: result = operandA ^ operandB; // Bitwise XOR
             // Add more cases for additional operations if needed
-            default: result = 4'bxxxx; // Output all 1's for undefined operation
+            default: result = 4'b0000; // Output all 1's for undefined operation
         endcase
     end
 

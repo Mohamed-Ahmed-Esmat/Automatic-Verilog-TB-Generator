@@ -266,7 +266,7 @@ def extract_logical_operators(verilog_code):
 
 def extract_clock_reset(rtl_code):
     # Regular expression to match always blocks and their sensitivity lists
-    always_block_pattern = re.compile(r'always\s*@\s*\((.?)\)\s*begin(.?)end', re.DOTALL)
+    always_block_pattern = re.compile(r'always\s*@\s*\((.*?)\)\s*begin', re.DOTALL)
 
     # Initialize the result dictionary
     result = {'clockName': '', 'clockEdge': '', 'resetName': '', 'resetEdge': ''}
@@ -274,24 +274,20 @@ def extract_clock_reset(rtl_code):
     # Find all always blocks in the RTL code
     always_blocks = always_block_pattern.findall(rtl_code)
 
-    for sensitivity_list, block_content in always_blocks:
+    for sensitivity_list in always_blocks:
         # Check for posedge or negedge in the sensitivity list
         edge_pattern = re.compile(r'(posedge|negedge)\s+(\w+)')
         edges = edge_pattern.findall(sensitivity_list)
 
         for edge, signal in edges:
-            # Check if the signal is used in an if-statement (likely a reset)
-            # Accommodate both 'if (reset)' and 'if (~reset)' conditions
-            if re.search(rf'\bif\s*\(\s*{signal}\s*\)', block_content, re.IGNORECASE):
-                result['resetName'] = signal
-                result['resetEdge'] = 'posedge'
-            elif re.search(rf'\bif\s*\(\s*~{signal}\s*\)', block_content, re.IGNORECASE):
-                result['resetName'] = signal
-                result['resetEdge'] = 'negedge'
-            else:
-                # If not in an if-statement, it's likely a clock
+            if 'clk' in signal or 'clock' in signal:
+                # Identify the clock signal
                 result['clockName'] = signal
                 result['clockEdge'] = edge
+            else:
+                # Identify the reset signal
+                result['resetName'] = signal
+                result['resetEdge'] = edge
 
         # Break if both clock and reset are found
         if result['clockName'] and result['resetName']:
@@ -494,6 +490,7 @@ def tb_generator(verilog_file, tb_file):
     extracted_reset_edge = extracted_clock_reset["resetEdge"]
     isCombinational = is_combinatonal(extracted_clock)
     direct_test_cases = generate_direct_test_cases(parsed_ifs, case_conditions, inputs_with_bits, extracted_clock, extracted_reset)
+    print(extracted_clock_reset)
     
     tbfile = open(tb_file, "w")
 
@@ -545,7 +542,7 @@ def tb_generator(verilog_file, tb_file):
 
 
 
-verilog_file = "MUX4to1.v"
+verilog_file = "ShiftRegister.v"
 file = open(verilog_file, 'r')
 rtl_code = file.read()
 tb_file = "tb_" + verilog_file

@@ -13,7 +13,7 @@ module ShiftRegister_tb;
   reg [5:0] dataIn;
   integer i;
 
-  wire [5:0] dataOut;
+  wire dataOut;
 
   ShiftRegister DUT (
     .clk(clk),
@@ -39,7 +39,7 @@ module ShiftRegister_tb;
 
 		shiftEnable = 1;
 		enable = 1;
-		dataIn = 49;
+		dataIn = 36;
 		@(negedge clk);
 
 
