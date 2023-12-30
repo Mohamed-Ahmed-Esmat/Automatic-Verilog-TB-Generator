@@ -8,7 +8,7 @@ module SimpleALU_tb;
   reg [2:0] aluOp;
   integer i;
 
-  wire [3:0] result;
+  wire result;
 
   SimpleALU DUT (
     .operandA(operandA),
@@ -22,9 +22,9 @@ module SimpleALU_tb;
 
 	//Direct Case
 
-		operandA = 8;
-		operandB = 8;
-		aluOp = 3'b011;
+		operandA = 10;
+		operandB = 0;
+		aluOp = 3'b001;
 		#10;
 
 
